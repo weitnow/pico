@@ -2,6 +2,13 @@ pico-8 cartridge // http://www.pico-8.com
 version 18
 __lua__
 
+anims={
+ idle={1},
+ punching={17,18,19},
+ --etc etc
+}
+
+
 function _init()
     player={
         sp=1,
@@ -11,13 +18,14 @@ function _init()
         state="idle",
         flp=false,
     }
+    player.play="idle" --you can set a new animation like this, the other variables will be added automatically
 
     --music(0)
 end
 
 function _update()
     set_state()
-    player_animate()
+    player_animate(player)
 end
 
 function set_state()
@@ -42,42 +50,19 @@ function set_state()
 end
 
 function player_animate()
-    if player.state == "idle" then
-        idle()
-    elseif player.state == "left" then
-        printh("left")
-    elseif player.state == "right" then
-        printh("right")
-    elseif player.state == "punching" then
-        punching()
-    elseif player.state == "defending" then
-        printh("defending")
-    end
-end
-
-function idle()
-    if player.sp > 2 then
-        player.sp = 1
-    elseif time() - player.anim> .5 then
-        player.anim=time()
-        player.sp+=1
-        if player.sp>2 then
-            player.sp=1
+    if player.state != player.play then --start a new animation
+        player.state = player.play
+        player.animindex = 1 --start with the first number in the animation table under that name
+        player.time = 0 --reset the timer
+    elseif #anims[player.state] > 1 then --continue playing an animation with multiple frames
+        player.time += 1
+        if player.time >= 3 then --change "3" to adjust the animation framerate
+            player.time = 0
+            player.anim = (player.anim % #anims[player.state]) + 1
+            --loops animations. "punching" becomes (ix % 3) + 1, so 1,2,3,1,2,3,1...
         end
     end
-end
-
-function punching()
-    if player.sp < 17 
-    or player.sp > 19 then
-        player.sp = 17
-    elseif time() - player.anim> .1 then
-        player.anim=time()
-        player.sp+=1
-        if player.sp > 19 then
-            player.sp = 17
-        end
-    end
+    player.sp = anims[player.state][player.animindex]
 end
 
 function _draw()
@@ -88,6 +73,9 @@ function _draw()
     print(player.state, 10, 40)
     spr(player.sp, player.x, player.y, 1, 1, player.flp)
 end
+
+
+
 
 __gfx__
 0000000000444440004444400004444400044444000444440004444400044444c004444400000000000000000000000000000000000000000000000000000000
