@@ -60,6 +60,19 @@ controlsystem.update = function()
     end
 end
 
+physicssystem = {}
+physicssystem.update = function()
+    for ent in all(entities) do
+        if ent.position ~= nil and ent.intention ~= nil then
+            if ent.intention.left then ent.position.x -= 1 end
+            if ent.intention.right then ent.position.x += 1 end
+            if ent.intention.up then ent.position.y -= 1 end
+            if ent.intention.down then ent.position.y += 1 end
+        end
+    end
+end
+
+
 gs = {}
 gs.update = function()
     cls()
@@ -87,11 +100,10 @@ function _init()
 end
 
 function _update()
+    --check player input
     controlsystem.update()
-    --if btn(0) then player.position.x -=1 end
-    --if btn(1) then player.position.x +=1 end
-    --if btn(2) then player.position.y -=1 end
-    --if btn(3) then player.position.y +=1 end
+    --move entities
+    physicssystem.update()
 end
 
 function _draw()
