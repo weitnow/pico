@@ -2,28 +2,100 @@ pico-8 cartridge // http://www.pico-8.com
 version 23
 __lua__
 
+entities = {}
 
+function newcontrol(left,right,up,down)
+    local c = {}
+    c.left = left
+    c.right = right
+    c.up = up
+    c.down = down
+    return c
+end
 
+function newintention()
+    local i = {}
+    i.left = false
+    i.right = false
+    i.up = false
+    i.down = false
+    return i
+end
+
+function newposition(x,y,w,h)
+    local p = {}
+    p.x = x
+    p.y = y
+    p.w = w
+    p.h = h
+    return p
+end
+
+function newsprite(x,y)
+    local s = {}
+        s.x = x
+        s.y = y
+    return s
+end
+
+function newentity(position,sprite,control, intention)
+    local e = {}
+    e.position = position
+    e.sprite = sprite
+    e.control = control
+    e.intention = intention
+    add(entities,e)
+    return e
+end
+
+controlsystem = {}
+controlsystem.update = function()
+    for ent in all(entities) do
+        if ent.control ~= nil and ent.intention ~= nil then
+            ent.intention.left =  btn(ent.control.left)
+            ent.intention.right =  btn(ent.control.right)
+            ent.intention.up =  btn(ent.control.up)
+            ent.intention.down =  btn(ent.control.down)
+        end
+    end
+end
+
+gs = {}
+gs.update = function()
+    cls()
+    camera(-64+player.position.x+(player.position.w/2),
+           -64+player.position.y+(player.position.h/2))
+    map()
+    -- draw all entities with sprites
+    for ent in all(entities) do
+        if ent.sprite ~= nil and ent.position ~= nil then
+            sspr(ent.sprite.x,ent.sprite.y,
+                ent.position.w, ent.position.h,
+                ent.position.x, ent.position.y)
+        end
+    end
+    camera()
+end
 
 function _init()
-    x=10
-    y=10
+    player = newentity(
+        newposition(10,10,8,8),
+        newsprite(8,0),
+        newcontrol(0,1,2,3),
+        newintention()
+    )
 end
 
 function _update()
-    if btn(0) then x -=1 end
-    if btn(1) then x +=1 end
-    if btn(2) then y -=1 end
-    if btn(3) then y +=1 end
+    controlsystem.update()
+    --if btn(0) then player.position.x -=1 end
+    --if btn(1) then player.position.x +=1 end
+    --if btn(2) then player.position.y -=1 end
+    --if btn(3) then player.position.y +=1 end
 end
 
 function _draw()
-    cls()
-    camera(-64+x+4, -64+y+4)
-    map()
-    spr(1,x,y)
-    camera()
-
+    gs.update()
 end
 
 __gfx__
