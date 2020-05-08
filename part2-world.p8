@@ -8,6 +8,13 @@ function canwalk(x,y)
     return not fget(mget(x/8,y/8),7)
 end
 
+function touching(x1,y1,w1,h1,x2,y2,w2,h2)
+    return x1+w1 > x2 and
+    x1 < x2+w2 and
+    y1+h1 > y2 and
+    y1 < y2+h2
+end
+
 function newcontrol(left,right,up,down,input)
     local c = {}
     c.left = left
@@ -81,21 +88,49 @@ physicssystem.update = function()
             if ent.intention.down then newy += 1 end
         end
 
+        local canmovex = true
+        local canmovey = true
+
+        -- map collisions -- 
+
         --update x position if allowd to move
-        if canwalk(newx,ent.position.y) and
-           canwalk(newx,ent.position.y+ent.position.h-1) and 
-           canwalk(newx+ent.position.w-1,ent.position.y) and 
-           canwalk(newx+ent.position.w-1,ent.position.y+ent.position.h-1) then
-            ent.position.x = newx
+        if not canwalk(newx,ent.position.y) or
+           not canwalk(newx,ent.position.y+ent.position.h-1) or 
+           not canwalk(newx+ent.position.w-1,ent.position.y) or 
+           not canwalk(newx+ent.position.w-1,ent.position.y+ent.position.h-1) then
+            canmovex = false
         end
 
         --update y position if allowd to move
-        if canwalk(ent.position.x,newy) and
-           canwalk(ent.position.x,newy+ent.position.h-1) and 
-           canwalk(ent.position.x+ent.position.w-1,newy) and 
-           canwalk(ent.position.x+ent.position.w-1,newy+ent.position.h-1) then
-            ent.position.y = newy
+        if not canwalk(ent.position.x,newy) or
+           not canwalk(ent.position.x,newy+ent.position.h-1) or 
+           not canwalk(ent.position.x+ent.position.w-1,newy) or 
+           not canwalk(ent.position.x+ent.position.w-1,newy+ent.position.h-1) then
+            canmovey = false
         end
+
+        -- entity collisions -- 
+
+        --check x
+        for o in all(entities) do
+            if o ~= ent and 
+            touching(newx, ent.position.y, ent.position.w, ent.position.h,
+                    o.position.x, o.position.y, o.position.w, o.position.h)then
+                    canmovex = false
+            end
+        end
+
+            --check y
+        for o in all(entities) do
+            if o ~= ent and 
+            touching(ent.position.x, newy, ent.position.w, ent.position.h,
+                    o.position.x, o.position.y, o.position.w, o.position.h)then
+                    canmovey = false
+            end
+        end
+
+        if canmovex then ent.position.x = newx end
+        if canmovey then ent.position.y = newy end
     end
 end
 
@@ -126,11 +161,12 @@ function _init()
     )
     add(entities,player)
 
-    tree = newentity(
+    add(entities, newentity(
         newposition(20,20,16,16),
         newsprite(8,16),
         nil,
         nil
+    )
     )
 end
 
