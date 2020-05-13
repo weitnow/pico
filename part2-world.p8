@@ -90,8 +90,10 @@ function newentity(position,sprite,control, intention, bounds, animation)
     return e
 end
 
-function newanimation()
+function newanimation(d)
     local a = {}
+    a.timer = 0
+    a.delay = d
     return a
 end
 
@@ -174,9 +176,16 @@ animationsystem = {}
 animationsystem.update = function()
     for ent in all(entities) do
         if ent.sprite and ent.animation then
-            ent.sprite.index += 1
-            if ent.sprite.index > #ent.sprite.spritelist then
-                ent.sprite.index = 1
+            -- increment the animation timer 
+            ent.animation.timer += 1
+            -- if the timer is higher then delay then
+            if ent.animation.timer > ent.animation.delay then
+                -- increment the index and reset the timer
+                ent.sprite.index += 1
+                if ent.sprite.index > #ent.sprite.spritelist then
+                    ent.sprite.index = 1
+                end
+                ent.animation.timer = 0
             end
         end
     end
@@ -228,7 +237,7 @@ function _init()
         --create a bounding box component
         newbounds(0,6,4,2),
         --create a animation component
-        newanimation()
+        newanimation(3)
     )
     add(entities,player)
 
@@ -249,6 +258,8 @@ function _update()
     controlsystem.update()
     --move entities
     physicssystem.update()
+    --animate entities
+    animationsystem.update()
 end
 
 function _draw()
