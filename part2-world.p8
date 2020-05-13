@@ -58,6 +58,7 @@ function newintention()
     i.right = false
     i.up = false
     i.down = false
+    i.moving = false
     return i
 end
 
@@ -90,10 +91,11 @@ function newentity(position,sprite,control, intention, bounds, animation)
     return e
 end
 
-function newanimation(d)
+function newanimation(d, t)
     local a = {}
     a.timer = 0
     a.delay = d
+    a.type = t
     return a
 end
 
@@ -102,6 +104,8 @@ function playerinput(ent)
     ent.intention.right =  btn(ent.control.right)
     ent.intention.up =  btn(ent.control.up)
     ent.intention.down =  btn(ent.control.down)
+    ent.intention.moving = ent.intention.left or ent.intention.right or 
+                           ent.intention.up or ent.intention.down
 end
 
 controlsystem = {}
@@ -176,16 +180,18 @@ animationsystem = {}
 animationsystem.update = function()
     for ent in all(entities) do
         if ent.sprite and ent.animation then
-            -- increment the animation timer 
-            ent.animation.timer += 1
-            -- if the timer is higher then delay then
-            if ent.animation.timer > ent.animation.delay then
-                -- increment the index and reset the timer
-                ent.sprite.index += 1
-                if ent.sprite.index > #ent.sprite.spritelist then
-                    ent.sprite.index = 1
+            if ent.animation.type ~= 'walk' or (ent.animation.type == walk) then
+                -- increment the animation timer 
+                ent.animation.timer += 1
+                -- if the timer is higher then delay then
+                if ent.animation.timer > ent.animation.delay then
+                    -- increment the index and reset the timer
+                    ent.sprite.index += 1
+                    if ent.sprite.index > #ent.sprite.spritelist then
+                        ent.sprite.index = 1
+                    end
+                    ent.animation.timer = 0
                 end
-                ent.animation.timer = 0
             end
         end
     end
@@ -237,7 +243,7 @@ function _init()
         --create a bounding box component
         newbounds(0,6,4,2),
         --create a animation component
-        newanimation(3)
+        newanimation(3, 'walk')
     )
     add(entities,player)
 
