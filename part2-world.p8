@@ -7,14 +7,16 @@ debug = false
 outside = {}
 outside.x  = 0 -- in tiles
 outside.y = 0
-outside.w = 22 
-outside.h = 11 
+outside.w = 21
+outside.h = 11
+outside.bg = 3
 
 shop = {}
-shop.x = 22 -- in tiles
+shop.x = 21 -- in tiles
 shop.y = 0 
 shop.w = 11
 shop.h = 8
+shop.bg = 2
 
 currentroom = outside
 
@@ -291,8 +293,16 @@ gs.update = function()
     end
     
     camera()
-    rectfill(0,0,128,(currentroom.y*8)-cameray,7)
-   
+
+    --top border
+    rectfill(-1,-1,128,(currentroom.y*8)-cameray-1,currentroom.bg)
+    --left border
+    rectfill(-1,-1,(currentroom.x*8)-camerax-1,128,currentroom.bg)
+    --reight border
+    rectfill((currentroom.x+currentroom.w)*8-camerax,-1,128,128,currentroom.bg)
+    --bottom border
+    rectfill(-1, (currentroom.y+currentroom.h)*8-cameray,128,128,currentroom.bg)
+    
 end
 
 function _init()
