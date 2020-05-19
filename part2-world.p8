@@ -2,7 +2,22 @@ pico-8 cartridge // http://www.pico-8.com
 version 23
 __lua__
 
-debug = true
+debug = false
+
+outside = {}
+outside.x  = 0 -- in tiles
+outside.y = 0
+outside.w = 22 
+outside.h = 11 
+
+shop = {}
+shop.x = 22 -- in tiles
+shop.y = 0 
+shop.w = 11
+shop.h = 8
+
+currentroom = outside
+
 entities = {}
 
 function ycomparison(a,b)
@@ -90,15 +105,8 @@ function newsprite(sl, i)
     return s
 end
 
-function newentity(position,sprite,control, intention, bounds, animation, trigger)
-    local e = {}
-    e.position = position
-    e.sprite = sprite
-    e.control = control
-    e.intention = intention
-    e.bounds = bounds
-    e.animation = animation
-    e.trigger = trigger
+function newentity(compontenttable)
+    local e = compontenttable
     return e
 end
 
@@ -131,59 +139,61 @@ end
 physicssystem = {}
 physicssystem.update = function()
     for ent in all(entities) do
-        local newx = ent.position.x
-        local newy = ent.position.y
+        if ent.position and ent.bounds then
+            local newx = ent.position.x
+            local newy = ent.position.y
 
-        if ent.position ~= nil and ent.intention ~= nil then
-            if ent.intention.left then newx -= 1 end
-            if ent.intention.right then newx += 1 end
-            if ent.intention.up then newy -= 1 end
-            if ent.intention.down then newy += 1 end
-        end
-
-        local canmovex = true
-        local canmovey = true
-
-        -- map collisions -- 
-
-        --update x position if allowd to move
-        if not canwalk(newx+ent.bounds.xoff,ent.position.y+ent.bounds.yoff) or
-           not canwalk(newx+ent.bounds.xoff,ent.position.y+ent.bounds.yoff+ent.bounds.h-1) or 
-           not canwalk(newx+ent.bounds.xoff+ent.bounds.w-1,ent.position.y+ent.bounds.yoff) or 
-           not canwalk(newx+ent.bounds.xoff+ent.bounds.w-1,ent.position.y+ent.bounds.yoff+ent.bounds.h-1) then
-            canmovex = false
-        end
-
-        --update y position if allowd to move
-        if not canwalk(ent.position.x+ent.bounds.xoff,newy+ent.bounds.yoff) or
-           not canwalk(ent.position.x+ent.bounds.xoff,newy+ent.bounds.yoff+ent.bounds.h-1) or 
-           not canwalk(ent.position.x+ent.bounds.xoff+ent.bounds.w-1,newy+ent.bounds.yoff) or 
-           not canwalk(ent.position.x+ent.bounds.xoff+ent.bounds.w-1,newy+ent.bounds.yoff+ent.bounds.h-1) then
-            canmovey = false
-        end
-
-        -- entity collisions -- 
-
-        --check x
-        for o in all(entities) do
-            if o ~= ent and 
-            touching(newx+ent.bounds.xoff, ent.position.y+ent.bounds.yoff, ent.bounds.w, ent.bounds.h,
-                    o.position.x+o.bounds.xoff, o.position.y+o.bounds.yoff, o.bounds.w, o.bounds.h)then
-                    canmovex = false
+            if ent.intention then
+                if ent.intention.left then newx -= 1 end
+                if ent.intention.right then newx += 1 end
+                if ent.intention.up then newy -= 1 end
+                if ent.intention.down then newy += 1 end
             end
-        end
 
-            --check y
-        for o in all(entities) do
-            if o ~= ent and 
-            touching(ent.position.x+ent.bounds.xoff, newy+ent.bounds.yoff, ent.bounds.w, ent.bounds.h,
-                    o.position.x+o.bounds.xoff, o.position.y+o.bounds.yoff, o.bounds.w, o.bounds.h)then
-                    canmovey = false
+            local canmovex = true
+            local canmovey = true
+
+            -- map collisions -- 
+
+            --update x position if allowd to move
+            if not canwalk(newx+ent.bounds.xoff,ent.position.y+ent.bounds.yoff) or
+            not canwalk(newx+ent.bounds.xoff,ent.position.y+ent.bounds.yoff+ent.bounds.h-1) or 
+            not canwalk(newx+ent.bounds.xoff+ent.bounds.w-1,ent.position.y+ent.bounds.yoff) or 
+            not canwalk(newx+ent.bounds.xoff+ent.bounds.w-1,ent.position.y+ent.bounds.yoff+ent.bounds.h-1) then
+                canmovex = false
             end
-        end
 
-        if canmovex then ent.position.x = newx end
-        if canmovey then ent.position.y = newy end
+            --update y position if allowd to move
+            if not canwalk(ent.position.x+ent.bounds.xoff,newy+ent.bounds.yoff) or
+            not canwalk(ent.position.x+ent.bounds.xoff,newy+ent.bounds.yoff+ent.bounds.h-1) or 
+            not canwalk(ent.position.x+ent.bounds.xoff+ent.bounds.w-1,newy+ent.bounds.yoff) or 
+            not canwalk(ent.position.x+ent.bounds.xoff+ent.bounds.w-1,newy+ent.bounds.yoff+ent.bounds.h-1) then
+                canmovey = false
+            end
+
+            -- entity collisions -- 
+
+            --check x
+            for o in all(entities) do
+                if o ~= ent and o.position and o.bounds and
+                touching(newx+ent.bounds.xoff, ent.position.y+ent.bounds.yoff, ent.bounds.w, ent.bounds.h,
+                        o.position.x+o.bounds.xoff, o.position.y+o.bounds.yoff, o.bounds.w, o.bounds.h)then
+                        canmovex = false
+                end
+            end
+
+                --check y
+            for o in all(entities) do
+                if o ~= ent and o.position and o.bounds and
+                touching(ent.position.x+ent.bounds.xoff, newy+ent.bounds.yoff, ent.bounds.w, ent.bounds.h,
+                        o.position.x+o.bounds.xoff, o.position.y+o.bounds.yoff, o.bounds.w, o.bounds.h)then
+                        canmovey = false
+                end
+            end
+
+            if canmovex then ent.position.x = newx end
+            if canmovey then ent.position.y = newy end
+        end
     end
 end
 
@@ -230,11 +240,12 @@ end
 gs = {}
 gs.update = function()
     cls()
-
     sort(entities, ycomparison)
 
-    camera(-64+player.position.x+(player.position.w/2),
-           -64+player.position.y+(player.position.h/2))
+    local camerax = -64+player.position.x+(player.position.w/2)
+    local cameray = -64+player.position.y+(player.position.h/2)
+
+    camera(camerax,cameray)
     map()
 
     -- draw all entities with sprites
@@ -278,51 +289,66 @@ gs.update = function()
             end
         end
     end
+    
     camera()
+    rectfill(0,0,128,(currentroom.y*8)-cameray,7)
+   
 end
 
 function _init()
     --create a player entity
-    player = newentity(
+    player = newentity({
         --create a position component
-        newposition(10,10,4,8),
+        position = newposition(10,10,4,8),
         --create a sprite component
-        newsprite({{8,0},{12,0},{16,0},{20,0}},1),
+        sprite = newsprite({{8,0},{12,0},{16,0},{20,0}},1),
         --create a control component
-        newcontrol(0,1,2,3, playerinput),
+        control = newcontrol(0,1,2,3, playerinput),
         --create a intention component
-        newintention(),
+        intention = newintention(),
         --create a bounding box component
-        newbounds(0,6,4,2),
+        bounds = newbounds(0,6,4,2),
         --create a animation component
-        newanimation(3, 'walk'),
-        --create a trigger component
-        nil
-    )
+        animation = newanimation(3, 'walk'),
+    })
     add(entities,player)
 
     --create a tree entity
-    add(entities, newentity(
-        newposition(20,20,16,16),
-        newsprite({{8,16}},1),
-        nil,
-        nil,
-        newbounds(6,12,4,4),
-        nil,
-        nil
-    )
+    add(entities, newentity({
+        position = newposition(20,20,16,16),
+        sprite = newsprite({{8,16}},1),
+        bounds = newbounds(6,12,4,4),
+    })
     )
 
     --create a shop entity
-    add(entities, newentity(
-        newposition(36,40,16,16),
-        newsprite({{40,0}},1),
-        nil,
-        nil,
-        newbounds(0,8,16,8),
-        nil,
-        newtrigger(9,16,5,3,function(self, other) if other == player then other.position.x = 10 other.positiony = 10 end end)
+    add(entities, newentity({
+        position = newposition(36,40,16,16),
+        sprite = newsprite({{40,0}},1),
+        bounds = newbounds(0,8,16,8),
+        trigger = newtrigger(9,16,5,3,
+            function(self, other) 
+                if other == player then
+                    currentroom = shop 
+                    other.position.x = 230 
+                    other.position.y = 50 
+                end 
+            end)
+    })
     )
+
+    --create a shop door exit trigger entity
+    add(entities, newentity({
+        position = newposition(224,62,16,3),
+        trigger = newtrigger(0,0,16,3,
+            function(self, other) 
+                if other == player then 
+                    currentroom = outside
+                    other.position.x = 45 
+                    other.position.y = 55
+                end 
+            end)
+    })
     )
 
 end
