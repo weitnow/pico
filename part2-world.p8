@@ -83,13 +83,16 @@ function newbounds(xoff, yoff, w, h)
     return b
 end
 
-function newtrigger(xoff, yoff, w, h, f)
+function newtrigger(xoff, yoff, w, h, f, type)
     local t= {}
     t.xoff = xoff
     t.yoff = yoff
     t.w = w
     t.h = h
     t.f = f
+    -- type ='once' 'always' and 'wait'
+    t.type = type
+    t.active = false
     return t
 end
 
@@ -269,7 +272,11 @@ triggersystem.update = function()
                 if o.bounds and o.position then
                     if touching(ent.position.x+ent.trigger.xoff, ent.position.y+ent.trigger.yoff, ent.trigger.w, ent.trigger.h,
                     o.position.x+o.bounds.xoff, o.position.y+o.bounds.yoff, o.bounds.w, o.bounds.h) then
-                        ent.trigger.f(ent,o)
+                        --trigger is actiated
+                        if ent.trigger.type=='once' then
+                            ent.trigger.f(ent,o)
+                            ent.trigger = nil
+                        end
                     end
                 end
             end
@@ -398,7 +405,7 @@ function _init()
                 if other == player then
                     other.dialogue.set("oh look, a tree!", true)
                 end
-            end)
+            end, 'once')
     })
     )
 
