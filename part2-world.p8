@@ -2,7 +2,7 @@ pico-8 cartridge // http://www.pico-8.com
 version 23
 __lua__
 
-debug = false
+debug = true
 
 outside = {}
 outside.x  = 0 -- in tiles
@@ -48,6 +48,30 @@ function touching(x1,y1,w1,h1,x2,y2,w2,h2)
     x1 < x2+w2 and
     y1+h1 > y2 and
     y1 < y2+h2
+end
+
+function newinventory(s,v,x,y,items)
+    local i = {}
+    i.size = s
+    i.x = x
+    i.y = y
+    i.items = items
+    return i
+end
+
+function newdialogue()
+    local d = {}
+    d.text = nil
+    d.timed = false
+    d.timerremaining = 0
+    d.cursor = 0
+    d.set = function(text, timed)
+        d.text = text
+        d.timed = timed
+        d.cursor = 0
+        if timed then d.timerremaining = 75 end
+    end
+    return d
 end
 
 function newbounds(xoff, yoff, w, h)
@@ -222,6 +246,21 @@ animationsystem.update = function()
     end
 end
 
+dialoguesystem = {}
+dialoguesystem.update = function()
+    for ent in all(entities) do
+        if ent.dialogue and ent.dialogue.text then
+            if ent.dialogue.cursor < #ent.dialogue.text then 
+                ent.dialogue.cursor += 1
+            end
+            if ent.dialogue.timed and 
+            ent.dialogue.timerremaining > 0 then
+                ent.dialogue.timerremaining -= 1
+            end
+        end
+    end
+end
+
 triggersystem = {}
 triggersystem.update = function()
     for ent in all(entities) do
@@ -291,7 +330,7 @@ gs.update = function()
             end
         end
     end
-    
+
     camera()
 
     --top border
@@ -302,6 +341,30 @@ gs.update = function()
     rectfill((currentroom.x+currentroom.w)*8-camerax,-1,128,128,currentroom.bg)
     --bottom border
     rectfill(-1, (currentroom.y+currentroom.h)*8-cameray,128,128,currentroom.bg)
+
+    camera(camerax,cameray)
+
+    -- draw dialogue boxes
+    for ent in all(entities) do
+        if ent.dialogue and ent.position then
+            if ent.dialogue.text ~= nil then
+                if (ent.dialogue.timed == false) or (ent.dialogue.timed and ent.dialogue.timerremaining > 0) then
+                    local textdraw = sub(ent.dialogue.text,0,ent.dialogue.cursor)
+                    --draw the outline
+                    for x=-1,1 do
+                        for y=-1,1 do
+                            print(textdraw,ent.position.x - 10+x,ent.position.y - 10+y,0)
+                        end
+                    end
+
+                    --draw text
+                    print(textdraw,ent.position.x - 10,ent.position.y - 10,7)
+                end
+            end
+        end
+    end
+
+    camera()
     
 end
 
@@ -320,6 +383,8 @@ function _init()
         bounds = newbounds(0,6,4,2),
         --create a animation component
         animation = newanimation(3, 'walk'),
+        --dialogue component
+        dialogue = newdialogue()
     })
     add(entities,player)
 
@@ -328,6 +393,12 @@ function _init()
         position = newposition(20,20,16,16),
         sprite = newsprite({{8,16}},1),
         bounds = newbounds(6,12,4,4),
+        trigger = newtrigger(4,10,8,8,
+            function(self, other)
+                if other == player then
+                    other.dialogue.set("oh look, a tree!", true)
+                end
+            end)
     })
     )
 
@@ -372,6 +443,8 @@ function _update()
     animationsystem.update()
     --check triggers
     triggersystem.update()
+    -- update dialogue
+    dialoguesystem.update()
 end
 
 function _draw()
