@@ -61,12 +61,13 @@ end
 
 function newdialogue()
     local d = {}
-    d.text = nil
+    d.text = {}
     d.timed = false
     d.timerremaining = 0
     d.cursor = 0
     d.set = function(text, timed)
-        d.text = text
+        d.text[0] = sub(text,0,15)
+        d.text[1] = sub(text,16,#text)
         d.timed = timed
         d.cursor = 0
         if timed then d.timerremaining = 75 end
@@ -252,8 +253,15 @@ end
 dialoguesystem = {}
 dialoguesystem.update = function()
     for ent in all(entities) do
-        if ent.dialogue and ent.dialogue.text then
-            if ent.dialogue.cursor < #ent.dialogue.text then 
+        if ent.dialogue and ent.dialogue.text[0] then
+
+            -- calculate length of text
+            local len = #ent.dialogue.text[0]
+            if #ent.dialogue.text[1] then
+                len += #ent.dialogue.text[1]
+            end
+
+            if ent.dialogue.cursor < len then 
                 ent.dialogue.cursor += 1
             end
             if ent.dialogue.timed and 
@@ -268,17 +276,33 @@ triggersystem = {}
 triggersystem.update = function()
     for ent in all(entities) do
         if ent.trigger and ent.position then
+            local triggered = false
             for o in all (entities) do
-                if o.bounds and o.position then
+                if ent ~= o and o.bounds and o.position and ent.trigger then
                     if touching(ent.position.x+ent.trigger.xoff, ent.position.y+ent.trigger.yoff, ent.trigger.w, ent.trigger.h,
                     o.position.x+o.bounds.xoff, o.position.y+o.bounds.yoff, o.bounds.w, o.bounds.h) then
                         --trigger is actiated
+                        triggered = true
+                        
                         if ent.trigger.type=='once' then
                             ent.trigger.f(ent,o)
                             ent.trigger = nil
+                        
+                        elseif ent.trigger.type=='always' then
+                            ent.trigger.f(ent,o)
+                            ent.trigger.active = true
+
+                        elseif ent.trigger.type=='wait' then
+                            if ent.trigger.active == false then
+                                ent.trigger.f(ent,o)
+                                ent.trigger.active = true
+                            end
                         end
                     end
                 end
+            end
+            if triggered == false then 
+                ent.trigger.active = false
             end
         end
     end
@@ -328,11 +352,13 @@ gs.update = function()
             end
             --trigger boxes
             if ent.trigger then
+                local color = 10
+                if ent.trigger.active then color = 11 end
                 rect(ent.position.x+ent.trigger.xoff,
                      ent.position.y+ent.trigger.yoff,
                      ent.position.x+ent.trigger.xoff+ent.trigger.w-1,
                      ent.position.y+ent.trigger.yoff+ent.trigger.h-1,
-                     10
+                     color
                     )
             end
         end
@@ -354,18 +380,33 @@ gs.update = function()
     -- draw dialogue boxes
     for ent in all(entities) do
         if ent.dialogue and ent.position then
-            if ent.dialogue.text ~= nil then
+            if ent.dialogue.text[0] then
                 if (ent.dialogue.timed == false) or (ent.dialogue.timed and ent.dialogue.timerremaining > 0) then
-                    local textdraw = sub(ent.dialogue.text,0,ent.dialogue.cursor)
+                    --draw line 1
+                    local textdraw = sub(ent.dialogue.text[0],0,ent.dialogue.cursor)
                     --draw the outline
                     for x=-1,1 do
                         for y=-1,1 do
-                            print(textdraw,ent.position.x - 10+x,ent.position.y - 10+y,0)
+                            print(textdraw,ent.position.x - 10+x,ent.position.y - 10+y-8,0)
                         end
                     end
 
                     --draw text
-                    print(textdraw,ent.position.x - 10,ent.position.y - 10,7)
+                    print(textdraw,ent.position.x - 10,ent.position.y - 10-8,7)
+
+                    --draw line 2
+                    if #ent.dialogue.text[1] then
+                         local textdraw = sub(ent.dialogue.text[1],0,max(0,ent.dialogue.cursor - #ent.dialogue.text[0]))
+                        --draw the outline
+                        for x=-1,1 do
+                            for y=-1,1 do
+                                print(textdraw,ent.position.x - 10+x,ent.position.y - 10+y,0)
+                            end
+                        end
+                         --draw text
+                        print(textdraw,ent.position.x - 10,ent.position.y - 10,7)
+                    end
+
                 end
             end
         end
@@ -403,9 +444,9 @@ function _init()
         trigger = newtrigger(4,10,8,8,
             function(self, other)
                 if other == player then
-                    other.dialogue.set("oh look, a tree!", true)
+                    other.dialogue.set("oh look, a tree! Beautiful", true)
                 end
-            end, 'once')
+            end, 'wait')
     })
     )
 
@@ -421,7 +462,7 @@ function _init()
                     other.position.x = 230 
                     other.position.y = 50 
                 end 
-            end)
+            end, 'always')
     })
     )
 
@@ -435,7 +476,7 @@ function _init()
                     other.position.x = 45 
                     other.position.y = 55
                 end 
-            end)
+            end, 'always')
     })
     )
 
